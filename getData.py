@@ -1,16 +1,16 @@
 import os
 import csv
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import time
 import configparser
 import zipfile
 import requests
 from io import BytesIO
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # Set the path to the Chrome executable
 # Define the directory path and URLs for Chrome and Chromedriver
@@ -40,7 +40,7 @@ chrome_options = webdriver.ChromeOptions()
 chrome_options.binary_location = chrome_exe_path  # Specify Chrome executable path
 chrome_options.add_argument('--headless')  # Run Chrome in headless mode (optional)
 
-config_path = os.path.join(os.path.dirname(__file__), 'config.ini')
+config_path = 'config.ini'
 
 if not os.path.exists(config_path):
     # If config.ini doesn't exist, prompt the user for credentials
@@ -57,7 +57,7 @@ if not os.path.exists(config_path):
 
 # Load credentials from config file
 config = configparser.ConfigParser()
-config.read('config.ini')  # Update with your config file path
+config.read(config_path)  # Update with your config file path
 
 username_value = config.get('Credentials', 'username')
 password_value = config.get('Credentials', 'password')
@@ -83,15 +83,27 @@ try:
     # Wait for a few seconds for the page to load after login (you may need to adjust the timing)
     time.sleep(10)
 
-    # Find the equity with the data you want to scrape (by class name in this case)
-    equity = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME, 'estimate-section__equity__content')))
-    home = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME, 'estimate-section__home__content')))
-    principal = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME, 'principal-balance-value')))
+    try:
+        # Find the equity with the data you want to scrape (by class name in this case)
+        equity_element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME, 'estimate-section__equity__content')))
+        equity = equity_element.text
+    except Exception as e:
+        print(f"Error retrieving equity: {e}")
+        equity = ''  # Set equity to blank in case of an error
     
-    # Get the text content of the equity
-    equity = equity.text
-    home = home.text
-    principal = principal.text
+    try:
+        home_element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME, 'estimate-section__home__content')))
+        home = home_element.text
+    except Exception as e:
+        print(f"Error retrieving home value: {e}")
+        home = ''  # Set home value to blank in case of an error
+    
+    try:
+        principal_element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME, 'principal-balance-value')))
+        principal = principal_element.text
+    except Exception as e:
+        print(f"Error retrieving principal remaining: {e}")
+        principal = ''  # Set principal remaining to blank in case of an error
 
     # Create or update the CSV file
     data = [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), equity, home, principal]
